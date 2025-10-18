@@ -148,7 +148,7 @@
       "parameters": {
         "code": {
           "execute": {
-            "code": "const { PineconeStore } = require('@langchain/pinecone');\nconst { Pinecone } = require('@pinecone-database/pinecone');\n\n\nconst pc = new Pinecone({ apiKey: 'apiKey' })\n\n// To get the unique host for an index, \n// see https://docs.pinecone.io/guides/manage-data/target-an-index\nconst index = pc.index(\"confluence\", \"https://<<PinconeUrl>>\")\n\nconst ns = index.namespace('demo')\n\nlet results = [];\nconst result = await ns.deleteMany({\n  PageId: { $eq: $node[\"Start\"].json[\"PageId\"] },\n});\n\nresults.push({\"result\": result});\n \nreturn results;"
+            "code": "const { PineconeStore } = require('@langchain/pinecone');\nconst { Pinecone } = require('@pinecone-database/pinecone');\n\n\nconst pc = new Pinecone({ apiKey: '<<apiKey>>' })\n\n// To get the unique host for an index, \n// see https://docs.pinecone.io/guides/manage-data/target-an-index\nconst index = pc.index(\"confluence\", \"https://<<Url>>\")\n\nconst ns = index.namespace('demo')\n\nconst itemsExists = await ns.listPaginated()\n\nlet results = [];\n\nif(itemsExists.vectors.length != 0) {\n  const result = await ns.deleteMany({\n    PageId: { $eq: $node[\"Start\"].json[\"PageId\"] },\n  });\n  results.push({\"result\": result});   \n  return results;\n}\nresults.push({\"result\": \"noRecords\"});\nreturn results;"
           }
         },
         "inputs": {
