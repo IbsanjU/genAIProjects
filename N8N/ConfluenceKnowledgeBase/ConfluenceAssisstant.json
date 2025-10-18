@@ -1,0 +1,166 @@
+{
+  "name": "ConfluenceAssisstant",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -272,
+        -128
+      ],
+      "id": "a6a0d129-b92e-4a49-b1d9-efbe9fac74e5",
+      "name": "When chat message received",
+      "webhookId": "cd128a6c-9190-4b22-9c4c-c731235fab10"
+    },
+    {
+      "parameters": {
+        "options": {
+          "dimensions": 512
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        288
+      ],
+      "id": "b9f95ade-b6b6-4727-b94c-312d2747a364",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "E4N6OKfBsaZsC9v3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful assistant that searches knowledge base to get any details related to user query.\n\nOutput: The information understood from the knowledgebase. Give a list of PageIds the data is populated from"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        -144
+      ],
+      "id": "94925913-a9dc-464a-9ba4-19b15996046a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        64
+      ],
+      "id": "e65c61d7-a471-48c8-8038-fafcc81b934b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "E4N6OKfBsaZsC9v3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to search the internal knowledgebase",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "confluence",
+          "mode": "list",
+          "cachedResultName": "confluence"
+        },
+        "options": {
+          "pineconeNamespace": "demo"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        96
+      ],
+      "id": "8456cd72-8641-4bbd-a134-3d3129ee9773",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "nIzrTulA5I8yj5BR",
+          "name": "PineconeApi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7e7690ff-f078-4bbf-b068-c7a1edf38959",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21b4d482f36d9e6dd7d3bbf73d45e5e9790baa59a6b5f2c253c02c6f1d0fb8cb"
+  },
+  "id": "shmFQhpetzVpHnqE",
+  "tags": []
+}

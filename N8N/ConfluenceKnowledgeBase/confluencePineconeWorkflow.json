@@ -1,0 +1,830 @@
+{
+  "name": "confluencePineconeWorkflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks"
+            }
+          ]
+        }
+      },
+      "id": "7e6c62f9-30f1-4c2b-b9d5-78f1e577cfe6",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1472,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "confluence_base_url",
+              "name": "confluenceBaseUrl",
+              "value": "https://<<baseUrl>>/wiki/rest/api/content/search",
+              "type": "string"
+            },
+            {
+              "id": "fe9551ba-f9b9-4733-b8d9-39d34bc3f6ce",
+              "name": "type",
+              "value": "page",
+              "type": "string"
+            },
+            {
+              "id": "space_key",
+              "name": "spaceKey",
+              "value": "<<spaceKey>>",
+              "type": "string"
+            },
+            {
+              "id": "last_run_date",
+              "name": "lastmodified",
+              "value": "={{ $('Get row(s)').item.json.lastUpdateDate }}",
+              "type": "string"
+            },
+            {
+              "id": "efb7bb23-1919-4ed2-887b-5df3a652138d",
+              "name": "expand",
+              "value": "history,version,body.export_view",
+              "type": "string"
+            },
+            {
+              "id": "7b069bb3-b52b-433a-a3d3-eb3969edb2cc",
+              "name": "limit",
+              "value": "3",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ae97d409-0567-4c5d-8e71-d01031863240",
+      "name": "Initialize Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        -896,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $node['Initialize Variables'].json.confluenceBaseUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "expand",
+              "value": "={{ $json.expand }}"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $json.limit }}"
+            },
+            {
+              "name": "cql",
+              "value": "=type={{ $json.type }} AND space=\"{{$json.spaceKey}}\" AND lastmodified>\"{{$json.lastmodified}}\""
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body._links.base + $response.body._links.next }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body._links.next }}"
+            }
+          }
+        }
+      },
+      "id": "91db02be-dc2c-426a-aa74-4af6ee4c6a7d",
+      "name": "Fetch Pages (Initial)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -688,
+        208
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "TbmflCFnJVmUKmFz",
+          "name": "ConfluenceBasicAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "http_success",
+              "leftValue": "={{$('Fetch Pages (Initial)').item.json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "a67e2951-3a80-45e8-9b0d-f5396729340d",
+              "leftValue": "={{ $json.isEmpty().toString() }}",
+              "rightValue": "=false",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "316f9f27-b6b8-412d-8b54-033401553b2d",
+      "name": "Check API Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "s3aq7RhhN4XEtxih",
+          "mode": "list",
+          "cachedResultName": "confluence",
+          "cachedResultUrl": "/projects/IU6bDVnHohnHP4Vm/datatables/s3aq7RhhN4XEtxih"
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -1296,
+        208
+      ],
+      "id": "e0385327-892d-4240-b6cd-3db49a399c5c",
+      "name": "Get row(s)"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        208
+      ],
+      "id": "934995ca-4a39-49fd-99bc-6b4ef7c79e35",
+      "name": "Split Out",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8b261bd2-cdc6-48cd-8e83-3ebeda9a6cf5",
+              "name": "PageId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "399201b7-47e7-4cbf-a200-e8ae290102a8",
+              "name": "Title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "9b9431ec-a4ac-492a-963e-f689d87339a0",
+              "name": "Data",
+              "value": "={{ $json.body.export_view.value }}",
+              "type": "string"
+            },
+            {
+              "id": "40d3c217-2301-4697-b933-f19f3dd80dc0",
+              "name": "Space",
+              "value": "={{ $json._expandable.space }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -32,
+        192
+      ],
+      "id": "f8781ce3-c643-4c56-8673-f77c53d57d95",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "s3aq7RhhN4XEtxih",
+          "mode": "list",
+          "cachedResultName": "confluence",
+          "cachedResultUrl": "/projects/IU6bDVnHohnHP4Vm/datatables/s3aq7RhhN4XEtxih"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "1"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lastUpdateDate": "={{ $now.minus(1,'days').format('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [
+            "lastUpdateDate"
+          ],
+          "schema": [
+            {
+              "id": "lastUpdateDate",
+              "displayName": "lastUpdateDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        448,
+        192
+      ],
+      "id": "9d7fca0e-4b52-4d58-877a-fb09c3ee4171",
+      "name": "Update row(s)",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vZJKsKPUfS5tUlSW",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vZJKsKPUfS5tUlSW",
+          "cachedResultName": "ConfluencePineConeUpsert"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "PageId",
+              "displayName": "PageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Data",
+              "displayName": "Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Space",
+              "displayName": "Space",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        192
+      ],
+      "id": "e415225c-048d-40e5-ae35-6b5eb6621841",
+      "name": "Call 'ConfluencePineConeUpsert'"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "EYRePpr6BLnjn1JO",
+          "mode": "list",
+          "cachedResultName": "confluenceLog",
+          "cachedResultUrl": "/projects/IU6bDVnHohnHP4Vm/datatables/EYRePpr6BLnjn1JO"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflowId": "=workflow/{{ $workflow.id }}/executions/{{ $execution.id }}",
+            "status": "Triggered",
+            "startDate": "={{ $('Get row(s)').item.json.lastUpdateDate }}",
+            "noOfPagesFound": 0
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflowId",
+              "displayName": "workflowId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "startDate",
+              "displayName": "startDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "noOfPagesFound",
+              "displayName": "noOfPagesFound",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updatedStartDate",
+              "displayName": "updatedStartDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        208
+      ],
+      "id": "0e1d4435-f82c-4b93-bb38-3cbb09e05d67",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "EYRePpr6BLnjn1JO",
+          "mode": "list",
+          "cachedResultName": "confluenceLog",
+          "cachedResultUrl": "/projects/IU6bDVnHohnHP4Vm/datatables/EYRePpr6BLnjn1JO"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $('Insert row').item.json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "Done",
+            "noOfPagesFound": "={{ $('Split Out').all().length }}",
+            "updatedStartDate": "={{ $now.minus(1,'days').format('yyyy-MM-dd') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflowId",
+              "displayName": "workflowId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "startDate",
+              "displayName": "startDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "noOfPagesFound",
+              "displayName": "noOfPagesFound",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "updatedStartDate",
+              "displayName": "updatedStartDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        656,
+        192
+      ],
+      "id": "4014631e-9887-44d6-9dd5-2fe8f0c572d4",
+      "name": "Update row(s)1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "EYRePpr6BLnjn1JO",
+          "mode": "list",
+          "cachedResultName": "confluenceLog",
+          "cachedResultUrl": "/projects/IU6bDVnHohnHP4Vm/datatables/EYRePpr6BLnjn1JO"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $('Insert row').item.json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ $('Fetch Pages (Initial)').item.json.statusCode == 200 ? \"No records\" : \"Error\" }}",
+            "updatedStartDate": "={{ $('Fetch Pages (Initial)').item.json.statusCode == 200 ? $now.minus(1,'days').format('yyyy-MM-dd') : $('Get row(s)').item.json.lastUpdateDate }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflowId",
+              "displayName": "workflowId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "startDate",
+              "displayName": "startDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "noOfPagesFound",
+              "displayName": "noOfPagesFound",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "updatedStartDate",
+              "displayName": "updatedStartDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        464
+      ],
+      "id": "39a18bdc-1f33-4eb5-bac4-1d386d95a58d",
+      "name": "Update row(s)2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "s3aq7RhhN4XEtxih",
+          "mode": "list",
+          "cachedResultName": "confluence",
+          "cachedResultUrl": "/projects/IU6bDVnHohnHP4Vm/datatables/s3aq7RhhN4XEtxih"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "1"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lastUpdateDate": "={{ $('Fetch Pages (Initial)').item.json.statusCode == 200 ? $now.minus(1,'days').format('yyyy-MM-dd') : $('Get row(s)').item.json.lastUpdateDate }}"
+          },
+          "matchingColumns": [
+            "lastUpdateDate"
+          ],
+          "schema": [
+            {
+              "id": "lastUpdateDate",
+              "displayName": "lastUpdateDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        224,
+        464
+      ],
+      "id": "ab11ea2c-95dd-4a1f-9ae9-6b2b29708ae4",
+      "name": "Update row(s)3",
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Variables": {
+      "main": [
+        [
+          {
+            "node": "Fetch Pages (Initial)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pages (Initial)": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check API Response": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row(s)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Check API Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Call 'ConfluencePineConeUpsert'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'ConfluencePineConeUpsert'": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert row": {
+      "main": [
+        [
+          {
+            "node": "Initialize Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)2": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "68ae5e73-9dd1-421a-9ae8-a4fe37b90591",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21b4d482f36d9e6dd7d3bbf73d45e5e9790baa59a6b5f2c253c02c6f1d0fb8cb"
+  },
+  "id": "c5XE2UlAvn1V1Ljp",
+  "tags": []
+}

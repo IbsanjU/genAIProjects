@@ -1,0 +1,284 @@
+{
+  "name": "ConfluencePineConeUpsert",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "7da37e5d-c3aa-43f1-9bdf-8171d76496e4",
+      "name": "Recursive Character Text Splitter2",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        16,
+        1696
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "dimensions": 512
+        }
+      },
+      "id": "59e81b39-216f-4ba2-9a74-fbffc7787c3d",
+      "name": "Embeddings OpenAI2",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        -176,
+        1520
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "E4N6OKfBsaZsC9v3",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "PageId",
+                "value": "={{ $('Start').item.json.PageId }}"
+              },
+              {
+                "name": "Space",
+                "value": "={{ $('Start').item.json.Space }}"
+              },
+              {
+                "name": "Title",
+                "value": "={{ $('Start').item.json.Title }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "560561fa-232c-443d-9781-5179e6666845",
+      "name": "Default Data Loader2",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        16,
+        1520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "confluence",
+          "mode": "list",
+          "cachedResultName": "confluence"
+        },
+        "options": {
+          "pineconeNamespace": "demo"
+        }
+      },
+      "id": "958b5782-5038-4c4c-ae8b-5ad3c0ad91a1",
+      "name": "Pinecone Vector Store2",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1296
+      ],
+      "credentials": {
+        "pineconeApi": {
+          "id": "nIzrTulA5I8yj5BR",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "901a0855-4a5a-431b-a0bb-00da369ec3c8",
+              "name": "=text",
+              "value": "={{ $('Start').item.json.Title }} + \": \" {{ $('Markdown').item.json.data }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8630a133-9739-449b-bf12-9da9869e048a",
+      "name": "Get Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "PageId"
+            },
+            {
+              "name": "Title"
+            },
+            {
+              "name": "Data"
+            },
+            {
+              "name": "Space"
+            }
+          ]
+        }
+      },
+      "id": "3f81ed88-ee87-4d1e-b4f0-f8abcce7b837",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -800,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "code": {
+          "execute": {
+            "code": "const { PineconeStore } = require('@langchain/pinecone');\nconst { Pinecone } = require('@pinecone-database/pinecone');\n\n\nconst pc = new Pinecone({ apiKey: 'apiKey' })\n\n// To get the unique host for an index, \n// see https://docs.pinecone.io/guides/manage-data/target-an-index\nconst index = pc.index(\"confluence\", \"https://<<PinconeUrl>>\")\n\nconst ns = index.namespace('demo')\n\nlet results = [];\nconst result = await ns.deleteMany({\n  PageId: { $eq: $node[\"Start\"].json[\"PageId\"] },\n});\n\nresults.push({\"result\": result});\n \nreturn results;"
+          }
+        },
+        "inputs": {
+          "input": [
+            {
+              "type": "main"
+            }
+          ]
+        },
+        "outputs": {
+          "output": [
+            {
+              "type": "main"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.code",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        1296
+      ],
+      "id": "dcb04559-ec11-458d-a33f-585193572fea",
+      "name": "LangChain Code"
+    },
+    {
+      "parameters": {
+        "html": "={{ $('Start').item.json.Data }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        1296
+      ],
+      "id": "b220f092-4a31-429e-8d57-923e0ee1755e",
+      "name": "Markdown"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter2": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader2",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader2": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Content": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "LangChain Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LangChain Code": {
+      "main": [
+        [
+          {
+            "node": "Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown": {
+      "main": [
+        [
+          {
+            "node": "Get Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6a4f0543-ad29-4474-954a-cf4edf39a108",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "21b4d482f36d9e6dd7d3bbf73d45e5e9790baa59a6b5f2c253c02c6f1d0fb8cb"
+  },
+  "id": "vZJKsKPUfS5tUlSW",
+  "tags": []
+}
